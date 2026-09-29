@@ -168,8 +168,60 @@ export function opportunityFromKd(kd: number): "high" | "medium" | "low" {
   return kd < 45 ? "high" : kd < 65 ? "medium" : "low";
 }
 
+/** Competition tier from the active-listing count — drives UI color coding. */
+export function competitionLevel(count: number): "low" | "medium" | "high" {
+  if (count < 10000) return "low";
+  if (count < 100000) return "medium";
+  return "high";
+}
+
+/**
+ * Estimated advertiser competition 0–100. Etsy has no ads API, so this is a
+ * deterministic heuristic anchored on keyword difficulty — stable per keyword.
+ */
+export function estimateAdCompetition(keyword: string, kd: number): number {
+  const h = hashStr(keyword.toLowerCase().trim());
+  return Math.min(98, Math.max(8, Math.round(kd * 0.7 + (h % 25))));
+}
+
 export function keywordSeed(keyword: string): number {
   return hashStr(keyword.toLowerCase().trim()) % 100000;
+}
+
+/**
+ * Etsy's `shop_location` filter expects the full country name
+ * (e.g. "United States"), not the ISO code — codes silently match nothing.
+ */
+const SHOP_LOCATION_NAMES: Record<string, string> = {
+  US: "United States",
+  GB: "United Kingdom",
+  CA: "Canada",
+  AU: "Australia",
+  DE: "Germany",
+  FR: "France",
+  IT: "Italy",
+  ES: "Spain",
+  NL: "Netherlands",
+  IE: "Ireland",
+  SE: "Sweden",
+  NO: "Norway",
+  DK: "Denmark",
+  PL: "Poland",
+  IN: "India",
+  PK: "Pakistan",
+  TR: "Türkiye",
+  AE: "United Arab Emirates",
+  SA: "Saudi Arabia",
+  JP: "Japan",
+  BR: "Brazil",
+  MX: "Mexico",
+  NZ: "New Zealand",
+  CN: "China",
+};
+
+/** ISO-3166 alpha-2 → Etsy's shop_location value. Undefined for unknown codes. */
+export function shopLocationName(code: string): string | undefined {
+  return SHOP_LOCATION_NAMES[code.toUpperCase()];
 }
 
 /** Taxonomy node names change rarely — cache them for the process lifetime. */

@@ -4,21 +4,51 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Badge, Button, Card, Input } from "@/components/ui";
 import { KeywordTable } from "@/components/dashboard/Tables";
-import { StatCard, TrendsChart } from "@/components/dashboard/Widgets";
+import { StatCard, TrendsChart, competitionTone } from "@/components/dashboard/Widgets";
 import type { KeywordMetrics } from "@/types";
+
+/** Seller-country filter options (Etsy `shop_location`, ISO-3166 alpha-2). */
+const COUNTRIES = [
+  { code: "US", name: "United States" },
+  { code: "GB", name: "United Kingdom" },
+  { code: "CA", name: "Canada" },
+  { code: "AU", name: "Australia" },
+  { code: "DE", name: "Germany" },
+  { code: "FR", name: "France" },
+  { code: "IT", name: "Italy" },
+  { code: "ES", name: "Spain" },
+  { code: "NL", name: "Netherlands" },
+  { code: "IE", name: "Ireland" },
+  { code: "SE", name: "Sweden" },
+  { code: "NO", name: "Norway" },
+  { code: "DK", name: "Denmark" },
+  { code: "PL", name: "Poland" },
+  { code: "IN", name: "India" },
+  { code: "PK", name: "Pakistan" },
+  { code: "TR", name: "Türkiye" },
+  { code: "AE", name: "UAE" },
+  { code: "SA", name: "Saudi Arabia" },
+  { code: "JP", name: "Japan" },
+  { code: "BR", name: "Brazil" },
+  { code: "MX", name: "Mexico" },
+  { code: "NZ", name: "New Zealand" },
+  { code: "CN", name: "China" },
+];
 
 function KeywordsTool() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  const [country, setCountry] = useState("");
   const [rows, setRows] = useState<KeywordMetrics[]>([]);
   const [detail, setDetail] = useState<KeywordMetrics | null>(null);
   const [loading, setLoading] = useState(false);
   const [live, setLive] = useState(false);
 
-  async function runSearch(q: string) {
+  async function runSearch(q: string, c: string = country) {
     setLoading(true);
     try {
-      const res = await fetch(`/api/keywords?q=${encodeURIComponent(q)}`);
+      const url = `/api/keywords?q=${encodeURIComponent(q)}${c ? `&country=${c}` : ""}`;
+      const res = await fetch(url);
       const json = await res.json();
       setLive(Boolean(json.live));
       if (json.data && !Array.isArray(json.data)) {
@@ -51,13 +81,24 @@ function KeywordsTool() {
         </p>
       </div>
 
-      <Card className="flex gap-3 p-4">
+      <Card className="flex flex-wrap items-center gap-3 p-4">
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && runSearch(query)}
           placeholder="Try “necklace”, “printable”, “wedding”…"
         />
+        <select
+          value={country}
+          onChange={(e) => { setCountry(e.target.value); if (query) runSearch(query, e.target.value); }}
+          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none focus:border-brand-500"
+          title="Search by country (seller location)"
+        >
+          <option value="">🌐 All countries</option>
+          {COUNTRIES.map((c) => (
+            <option key={c.code} value={c.code}>{c.name}</option>
+          ))}
+        </select>
         <Button onClick={() => runSearch(query)} disabled={loading}>
           {loading ? "…" : "Search"}
         </Button>
@@ -65,11 +106,16 @@ function KeywordsTool() {
 
       {detail ? (
         <div className="space-y-6">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-xl font-bold text-slate-900">{detail.keyword}</h2>
             <Badge tone={detail.opportunity === "high" ? "green" : detail.opportunity === "medium" ? "amber" : "red"}>
               {detail.opportunity} opportunity
             </Badge>
+            {country && (
+              <Badge tone="brand">
+                🌐 {COUNTRIES.find((c) => c.code === country)?.name ?? country} sellers
+              </Badge>
+            )}
           </div>
           <div className="grid gap-4 md:grid-cols-4">
             <StatCard
@@ -81,6 +127,7 @@ function KeywordsTool() {
               label="Competition"
               value={detail.competition.toLocaleString()}
               hint={live ? "live active listings" : "active listings (mock)"}
+              tone={competitionTone(detail.competitionLevel)}
             />
             <StatCard
               label="Difficulty"
@@ -93,9 +140,36 @@ function KeywordsTool() {
               hint={live ? "click-through" : "click-through (mock)"}
             />
           </div>
+          <div className="grid gap-4 md:grid-cols-5">
+            <StatCard
+              label="Ad competition"
+              value={detail.adCompetition != null ? `${detail.adCompetition} / 100` : "—"}
+              hint="advertiser demand (estimated)"
+            />
+            <StatCard
+              label="Avg. views"
+              value="—"
+              hint="not provided by Etsy"
+            />
+            <StatCard
+              label="Avg. favorites"
+              value={detail.avgFavorites != null ? detail.avgFavorites.toLocaleString() : "—"}
+              hint={live ? "per top listing" : "per listing (mock)"}
+            />
+            <StatCard
+              label="Favs / views"
+              value="—"
+              hint="needs view data"
+            />
+            <StatCard
+              label="Avg. price"
+              value={detail.avgPrice != null ? `$${detail.avgPrice.toFixed(2)}` : "—"}
+              hint={live ? "top competing listings" : "competing listings (mock)"}
+            />
+          </div>
           {live && (
             <p className="text-xs text-slate-400">
-              Search volume, difficulty and CTR are modeled estimates; competition is measured live from Etsy.
+              Search volume, difficulty, CTR and ad competition are modeled estimates; competition, favorites and prices are measured live from Etsy. Etsy does not expose listing views.
             </p>
           )}
           <Card className="p-6">

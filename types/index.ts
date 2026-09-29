@@ -16,12 +16,17 @@ export interface FieldProvenance {
   difficulty: DataSource;
 }
 
+/** Competition tier derived from the active-listing count — drives UI color coding. */
+export type CompetitionLevel = "low" | "medium" | "high";
+
 export interface KeywordMetrics {
   keyword: string;
   /** Estimated monthly searches — Etsy does not publish this; always estimated. */
   searchVolume: number;
   /** Exact number of active listings competing for this keyword (live via Etsy). */
   competition: number;
+  /** Competition tier: low / medium / high (from the listing count). */
+  competitionLevel?: CompetitionLevel;
   /** Keyword difficulty 0–100 (higher = harder). Heuristic — always estimated. */
   kd: number;
   /** 12-month demand trend, oldest → newest. */
@@ -29,6 +34,16 @@ export interface KeywordMetrics {
   /** Average click-through estimate 0–1. */
   ctr: number;
   opportunity: "high" | "medium" | "low";
+  /** Estimated advertiser competition 0–100 — Etsy has no ads API; always estimated. */
+  adCompetition?: number;
+  /** Average price of the top competing listings (live from Etsy). */
+  avgPrice?: number;
+  /** Average favorites across the top competing listings (live from Etsy). */
+  avgFavorites?: number;
+  /** Avg listing views — Etsy does not expose this; absent (UI shows "—"). */
+  avgViews?: number | null;
+  /** favorites ÷ views — impossible without view data; absent (UI shows "—"). */
+  favsPerView?: number | null;
   /** Which fields are live vs estimated. Absent = legacy mock row. */
   provenance?: FieldProvenance;
 }

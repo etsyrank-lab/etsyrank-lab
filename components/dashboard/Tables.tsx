@@ -1,8 +1,15 @@
 import Link from "next/link";
-import { Badge, EstMark } from "../ui";
+import { Badge } from "../ui";
+import { competitionTone } from "./Widgets";
 import type { CompetitorShop, KeywordMetrics, ListingSnapshot } from "@/types";
 
 const oppTone = { high: "green", medium: "amber", low: "red" } as const;
+
+const COMP_TEXT: Record<string, string> = {
+  green: "text-green-600",
+  lime: "text-lime-500",
+  red: "text-red-600",
+};
 
 export function KeywordTable({ rows }: { rows: KeywordMetrics[] }) {
   return (
@@ -31,12 +38,10 @@ export function KeywordTable({ rows }: { rows: KeywordMetrics[] }) {
               </td>
               <td className="px-5 py-3 tabular-nums">
                 {k.searchVolume.toLocaleString()}
-                {k.provenance?.volume === "estimated" && <EstMark />}
               </td>
-              <td className="px-5 py-3 tabular-nums">{k.competition.toLocaleString()}</td>
+              <td className={`px-5 py-3 font-semibold tabular-nums ${COMP_TEXT[competitionTone(k.competitionLevel) ?? ""] ?? ""}`}>{k.competition.toLocaleString()}</td>
               <td className="px-5 py-3 tabular-nums">
                 {k.kd}
-                {k.provenance?.difficulty === "estimated" && <EstMark />}
               </td>
               <td className="px-5 py-3 tabular-nums">{(k.ctr * 100).toFixed(1)}%</td>
               <td className="px-5 py-3">

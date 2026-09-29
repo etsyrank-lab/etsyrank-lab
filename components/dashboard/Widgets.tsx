@@ -1,10 +1,25 @@
 import { Card } from "../ui";
 
-export function StatCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
+export type StatTone = "green" | "lime" | "red" | "blue";
+
+const TONE_CLASS: Record<StatTone, string> = {
+  green: "text-green-600",
+  lime: "text-lime-500",
+  red: "text-red-600",
+  blue: "text-blue-600",
+};
+
+/** Competition-tier color: low = green, medium = light green, high = red. */
+export function competitionTone(level?: "low" | "medium" | "high"): StatTone | undefined {
+  if (!level) return undefined;
+  return level === "low" ? "green" : level === "medium" ? "lime" : "red";
+}
+
+export function StatCard({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: StatTone }) {
   return (
     <Card className="p-5">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-extrabold text-slate-900">{value}</p>
+      <p className={`mt-1 text-2xl font-extrabold ${tone ? TONE_CLASS[tone] : "text-slate-900"}`}>{value}</p>
       {hint && <p className="mt-1 text-xs text-slate-500">{hint}</p>}
     </Card>
   );
