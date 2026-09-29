@@ -1,7 +1,9 @@
+import { Faq } from "@/components/landing/Faq";
 import { Features, HowItWorks } from "@/components/landing/Features";
 import { Hero } from "@/components/landing/Hero";
 import { Navbar } from "@/components/landing/Navbar";
-import { Footer, PricingTeaser } from "@/components/landing/Pricing";
+import { CtaSection, Footer, PricingTeaser } from "@/components/landing/Pricing";
+import { Testimonials } from "@/components/landing/Testimonials";
 
 export default function LandingPage() {
   return (
@@ -11,7 +13,10 @@ export default function LandingPage() {
         <Hero />
         <Features />
         <HowItWorks />
+        <Testimonials />
         <PricingTeaser />
+        <Faq />
+        <CtaSection />
       </main>
       <Footer />
     </div>

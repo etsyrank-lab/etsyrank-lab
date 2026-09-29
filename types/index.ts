@@ -68,3 +68,84 @@ export interface MarketInsight {
   commonTags: { tag: string; usage: number }[];
   avgListingAgeDays: number;
 }
+
+/* ---------------- Phase 2 tools ---------------- */
+
+export type AuditSectionId = "title" | "tags" | "description" | "attributes" | "images";
+
+export interface AuditSection {
+  id: AuditSectionId;
+  label: string;
+  score: number; // 0–100
+  weight: number; // contribution to overall score, sums to 1
+  issues: string[];
+  suggestions: string[];
+}
+
+export interface AuditReport {
+  listingTitle: string;
+  overallScore: number; // 0–100
+  grade: "A" | "B" | "C" | "D" | "F";
+  sections: AuditSection[];
+  quickWins: string[];
+}
+
+export interface AuditInput {
+  title: string;
+  tags: string[];
+  description: string;
+  attributes: string[];
+  imageCount: number;
+}
+
+export interface NicheOpportunity {
+  id: string;
+  name: string;
+  category: string;
+  monthlyVolume: number;
+  competition: "low" | "medium" | "high";
+  opportunityScore: number; // 0–100
+  trend: number[]; // 12-point sparkline
+  avgPrice: number;
+}
+
+export interface TrackedKeyword {
+  id: string;
+  keyword: string;
+  currentRank: number;
+  /** rank 7 days ago (lower rank = better) */
+  previousRank: number;
+  /** 30 daily rank readings, oldest → newest */
+  rankHistory: number[];
+  searchVolume: number;
+}
+
+export interface ShopAnalysis {
+  shopName: string;
+  healthScore: number; // 0–100
+  strengths: string[];
+  weaknesses: string[];
+  topListings: {
+    listingId: number;
+    title: string;
+    price: number;
+    views: number;
+    favorites: number;
+  }[];
+  stats: {
+    totalSales: number;
+    reviews: number;
+    rating: number;
+    activeListings: number;
+    yearOpened: number;
+    country: string;
+  };
+}
+
+export interface GeneratedListing {
+  title: string;
+  tags: string[]; // exactly 13
+  description: string;
+  /** always true in the MVP — flags mock output in the UI */
+  mock: true;
+}
