@@ -2,12 +2,20 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FLAT_NAV } from "./Sidebar";
 
 export function Topbar() {
   const router = useRouter();
   const [q, setQ] = useState("");
+  const [live, setLive] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    fetch("/api/status")
+      .then((r) => r.json())
+      .then((j) => setLive(Boolean(j.etsy)))
+      .catch(() => setLive(false));
+  }, []);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,6 +51,20 @@ export function Topbar() {
         </form>
 
         <div className="ml-auto flex items-center gap-3">
+          {live !== null &&
+            (live ? (
+              <span
+                title="Competition counts are live from the Etsy Open API; search volumes are estimates"
+                className="hidden items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 ring-1 ring-emerald-200 sm:inline-flex"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                Live Etsy data
+              </span>
+            ) : (
+              <span className="hidden rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 ring-1 ring-amber-200 sm:inline">
+                Mock data
+              </span>
+            ))}
           <span className="hidden rounded-full bg-brand-50 px-3 py-1.5 text-xs font-bold text-brand-700 ring-1 ring-brand-100 sm:inline">
             25 credits
           </span>

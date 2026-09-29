@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Badge,
   Button,
   Card,
+  Input,
   PageHeader,
   ScoreRing,
   Textarea,
@@ -33,6 +34,16 @@ export default function AuditPage() {
   const [imageCount, setImageCount] = useState(6);
   const [report, setReport] = useState<AuditReport | null>(null);
   const [loading, setLoading] = useState(false);
+  const [live, setLive] = useState(false);
+  const [listingId, setListingId] = useState("");
+  const [auditError, setAuditError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/status")
+      .then((r) => r.json())
+      .then((j) => setLive(Boolean(j.etsy)))
+      .catch(() => setLive(false));
+  }, []);
 
   function loadMock(listingId: number) {
     const l = MOCK_DRAFTS.find((x) => x.listingId === listingId);
@@ -53,6 +64,7 @@ export default function AuditPage() {
 
   async function runAudit() {
     setLoading(true);
+    setAuditError(null);
     try {
       const res = await fetch("/api/audit", {
         method: "POST",
@@ -72,14 +84,66 @@ export default function AuditPage() {
     }
   }
 
+  async function runLiveAudit() {
+    const id = listingId.trim();
+    if (!id) return;
+    setLoading(true);
+    setAuditError(null);
+    try {
+      const res = await fetch("/api/audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ listing_id: id }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setAuditError(json.error ?? "Could not fetch that listing.");
+        setReport(null);
+      } else {
+        setReport(json.data);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="space-y-8">
       <PageHeader
         kicker="Optimize"
         title="Listing auditor"
         sub="Paste a draft listing and get a graded 0–100 report across the five pillars of Etsy SEO — with exact fixes, not vague advice."
-        actions={<Badge tone="amber">Mock scoring</Badge>}
+        actions={
+          live ? (
+            <Badge tone="green">Live listing lookup</Badge>
+          ) : (
+            <Badge tone="amber">Mock scoring</Badge>
+          )
+        }
       />
+
+      {live && (
+        <Card className="border-emerald-200 bg-emerald-50/50 p-5">
+          <h2 className="text-sm font-bold text-slate-900">Audit a live Etsy listing</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Enter a listing ID (the number in its Etsy URL) — we&apos;ll pull its real
+            title, tags, description, and images, then grade them.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <Input
+              value={listingId}
+              onChange={(e) => setListingId(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && runLiveAudit()}
+              placeholder="e.g. 1234567890"
+              inputMode="numeric"
+            />
+            <Button onClick={runLiveAudit} disabled={loading || !listingId.trim()} className="shrink-0">
+              {loading ? "…" : "Fetch & audit"}
+            </Button>
+          </div>
+          {auditError && <p className="mt-2 text-xs font-semibold text-rose-600">{auditError}</p>}
+        </Card>
+      )}
 
       <Card className="p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">

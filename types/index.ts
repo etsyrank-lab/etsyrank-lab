@@ -1,22 +1,36 @@
 /**
  * Shared TypeScript types for EtsyRank Lab.
- * These mirror the shapes returned by the (mocked) API routes.
- * Phase 2: real Etsy Open API v3 responses will be mapped into these types.
+ *
+ * Phase 3: real Etsy Open API v3 responses are mapped into these types.
+ * Etsy publishes NO search-volume endpoint, so volume/difficulty are always
+ * estimates — the `provenance` markers say which fields are live vs estimated.
  */
+
+/** Where a metric value came from. */
+export type DataSource = "live" | "estimated" | "mock";
+
+/** Per-field provenance for keyword-style metrics. */
+export interface FieldProvenance {
+  volume: DataSource;
+  competition: DataSource;
+  difficulty: DataSource;
+}
 
 export interface KeywordMetrics {
   keyword: string;
-  /** Estimated monthly searches on Etsy. Mocked in MVP. */
+  /** Estimated monthly searches — Etsy does not publish this; always estimated. */
   searchVolume: number;
-  /** Exact number of active listings competing for this keyword. */
+  /** Exact number of active listings competing for this keyword (live via Etsy). */
   competition: number;
-  /** Keyword difficulty 0–100 (higher = harder). */
+  /** Keyword difficulty 0–100 (higher = harder). Heuristic — always estimated. */
   kd: number;
   /** 12-month demand trend, oldest → newest. */
   trend: number[];
   /** Average click-through estimate 0–1. */
   ctr: number;
   opportunity: "high" | "medium" | "low";
+  /** Which fields are live vs estimated. Absent = legacy mock row. */
+  provenance?: FieldProvenance;
 }
 
 export interface ListingSnapshot {
@@ -25,13 +39,17 @@ export interface ListingSnapshot {
   shopName: string;
   price: number;
   currency: string;
-  views: number;
+  /** Etsy does not expose listing views via the API — absent on live rows. */
+  views?: number;
   favorites: number;
-  /** favorites / views ratio */
-  conversion: number;
-  ageDays: number;
+  /** favorites / views ratio — absent when views are unknown. */
+  conversion?: number;
+  /** Derived from creation_tsi on live rows. */
+  ageDays?: number;
   tags: string[];
   imageSeed: string; // used to render a deterministic placeholder swatch
+  url?: string;
+  source?: DataSource;
 }
 
 export interface CompetitorShop {
@@ -102,11 +120,15 @@ export interface NicheOpportunity {
   id: string;
   name: string;
   category: string;
+  /** Estimated monthly searches — Etsy does not publish this; always estimated. */
   monthlyVolume: number;
+  /** Derived from the live active-listing count when available. */
   competition: "low" | "medium" | "high";
   opportunityScore: number; // 0–100
   trend: number[]; // 12-point sparkline
   avgPrice: number;
+  /** Which fields are live vs estimated. Absent = legacy mock row. */
+  provenance?: FieldProvenance;
 }
 
 export interface TrackedKeyword {
@@ -129,7 +151,8 @@ export interface ShopAnalysis {
     listingId: number;
     title: string;
     price: number;
-    views: number;
+    /** Etsy does not expose listing views via the API — absent on live rows. */
+    views?: number;
     favorites: number;
   }[];
   stats: {

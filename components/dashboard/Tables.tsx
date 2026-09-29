@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Badge } from "../ui";
+import { Badge, EstMark } from "../ui";
 import type { CompetitorShop, KeywordMetrics, ListingSnapshot } from "@/types";
 
 const oppTone = { high: "green", medium: "amber", low: "red" } as const;
@@ -29,9 +29,15 @@ export function KeywordTable({ rows }: { rows: KeywordMetrics[] }) {
                   {k.keyword}
                 </Link>
               </td>
-              <td className="px-5 py-3 tabular-nums">{k.searchVolume.toLocaleString()}</td>
+              <td className="px-5 py-3 tabular-nums">
+                {k.searchVolume.toLocaleString()}
+                {k.provenance?.volume === "estimated" && <EstMark />}
+              </td>
               <td className="px-5 py-3 tabular-nums">{k.competition.toLocaleString()}</td>
-              <td className="px-5 py-3 tabular-nums">{k.kd}</td>
+              <td className="px-5 py-3 tabular-nums">
+                {k.kd}
+                {k.provenance?.difficulty === "estimated" && <EstMark />}
+              </td>
               <td className="px-5 py-3 tabular-nums">{(k.ctr * 100).toFixed(1)}%</td>
               <td className="px-5 py-3">
                 <Badge tone={oppTone[k.opportunity]}>{k.opportunity}</Badge>
@@ -99,7 +105,8 @@ export function ListingCards({ listings }: { listings: ListingSnapshot[] }) {
               <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                 {[
                   ["Price", `$${l.price}`],
-                  ["Views", l.views.toLocaleString()],
+                  // Etsy doesn't expose listing views via the API — live rows show "—".
+                  ["Views", l.views != null ? l.views.toLocaleString() : "—"],
                   ["Favs", l.favorites.toLocaleString()],
                 ].map(([k, v]) => (
                   <div key={k} className="rounded-lg bg-slate-50 py-2">
@@ -109,8 +116,12 @@ export function ListingCards({ listings }: { listings: ListingSnapshot[] }) {
                 ))}
               </div>
               <p className="mt-3 text-xs text-slate-500">
-                Conversion <span className="font-bold text-slate-700">{(l.conversion * 100).toFixed(1)}%</span>
-                {" · "}{l.ageDays} days old
+                Conversion{" "}
+                <span className="font-bold text-slate-700">
+                  {l.conversion != null ? `${(l.conversion * 100).toFixed(1)}%` : "—"}
+                </span>
+                {" · "}
+                {l.ageDays != null ? `${l.ageDays} days old` : "age unknown"}
               </p>
             </div>
           </div>

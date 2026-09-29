@@ -260,3 +260,23 @@ export function Stat({
     </div>
   );
 }
+
+/**
+ * Subtle "est." marker for estimated metrics. Etsy publishes no search-volume
+ * endpoint, so volume/difficulty figures are always estimates — this keeps the
+ * UI honest about which numbers are measured vs modeled.
+ */
+export function EstMark({
+  label = "Estimated — Etsy doesn't publish this metric",
+}: {
+  label?: string;
+}) {
+  return (
+    <sup
+      title={label}
+      className="ml-1 cursor-help align-super text-[10px] font-semibold uppercase tracking-wide text-slate-400"
+    >
+      est.
+    </sup>
+  );
+}

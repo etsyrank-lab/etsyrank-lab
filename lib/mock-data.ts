@@ -16,7 +16,8 @@ import {
 
 const MONTHS = 12;
 
-function trend(seed: number, base: number, swing: number): number[] {
+/** Deterministic 12-point demand sparkline. Exported for live-mode visuals. */
+export function trend(seed: number, base: number, swing: number): number[] {
   const out: number[] = [];
   let v = base;
   for (let i = 0; i < MONTHS; i++) {
@@ -543,26 +544,25 @@ export function generateListingDraft(idea: string): GeneratedListing {
 
 /* --------------------------- Shop analyzer -------------------------- */
 
-export function getShopAnalysis(shopName: string): ShopAnalysis | undefined {
-  const shop = MOCK_COMPETITORS.find((s) => s.shopName.toLowerCase() === shopName.trim().toLowerCase());
-  if (!shop) return undefined;
-
-  const listings = Object.values(MOCK_LISTINGS)
-    .flat()
-    .filter((l) => l.shopName === shop.shopName)
-    .slice(0, 5)
-    .map((l) => ({ listingId: l.listingId, title: l.title, price: l.price, views: l.views, favorites: l.favorites }));
-
+/**
+ * Score shop health from a shop profile + its top listings.
+ * Used by the mock path AND the live Etsy route (which maps real shop
+ * payloads into the CompetitorShop shape first).
+ */
+export function buildShopAnalysis(
+  shop: CompetitorShop,
+  listings: ShopAnalysis["topListings"]
+): ShopAnalysis {
   const strengths: string[] = [];
   const weaknesses: string[] = [];
 
   if (shop.rating >= 4.8) strengths.push(`Elite buyer trust — ${shop.rating}★ average across ${shop.reviews.toLocaleString()} reviews.`);
-  else if (shop.rating < 4.7) weaknesses.push(`Rating of ${shop.rating}★ trails top competitors — resolve 1-star themes publicly.`);
+  else if (shop.rating < 4.7 && shop.rating > 0) weaknesses.push(`Rating of ${shop.rating}★ trails top competitors — resolve 1-star themes publicly.`);
   if (shop.totalSales >= 20000) strengths.push(`${shop.totalSales.toLocaleString()} lifetime sales — proven, scalable winners in the catalog.`);
   if (shop.activeListings >= 100) strengths.push(`Deep catalog (${shop.activeListings} listings) captures far more long-tail searches.`);
   else if (shop.activeListings < 60) weaknesses.push(`Small catalog (${shop.activeListings} listings) — each new listing is a new chance to rank.`);
-  if (2026 - shop.yearOpened <= 4) weaknesses.push(`Younger shop (opened ${shop.yearOpened}) — still compounding review momentum.`);
-  else strengths.push(`Established since ${shop.yearOpened} — age authority Etsy rewards.`);
+  if (shop.yearOpened > 0 && 2026 - shop.yearOpened <= 4) weaknesses.push(`Younger shop (opened ${shop.yearOpened}) — still compounding review momentum.`);
+  else if (shop.yearOpened > 0) strengths.push(`Established since ${shop.yearOpened} — age authority Etsy rewards.`);
   const avgFavs = listings.length ? listings.reduce((s, l) => s + l.favorites, 0) / listings.length : 0;
   if (avgFavs > 2000) strengths.push("Top listings earn thousands of favorites — strong click-through signals.");
   else weaknesses.push("Top listings underperform on favorites — refresh hero images first.");
@@ -594,4 +594,17 @@ export function getShopAnalysis(shopName: string): ShopAnalysis | undefined {
       country: shop.country,
     },
   };
+}
+
+export function getShopAnalysis(shopName: string): ShopAnalysis | undefined {
+  const shop = MOCK_COMPETITORS.find((s) => s.shopName.toLowerCase() === shopName.trim().toLowerCase());
+  if (!shop) return undefined;
+
+  const listings = Object.values(MOCK_LISTINGS)
+    .flat()
+    .filter((l) => l.shopName === shop.shopName)
+    .slice(0, 5)
+    .map((l) => ({ listingId: l.listingId, title: l.title, price: l.price, views: l.views, favorites: l.favorites }));
+
+  return buildShopAnalysis(shop, listings);
 }

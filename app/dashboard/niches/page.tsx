@@ -6,6 +6,7 @@ import {
   Badge,
   Card,
   EmptyState,
+  EstMark,
   PageHeader,
   SkeletonBlock,
   Sparkline,
@@ -21,13 +22,17 @@ const COMP_TONE: Record<NicheOpportunity["competition"], "green" | "amber" | "re
 export default function NichesPage() {
   const [niches, setNiches] = useState<NicheOpportunity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [live, setLive] = useState(false);
   const [category, setCategory] = useState("All");
   const [sort, setSort] = useState<"score" | "volume">("score");
 
   useEffect(() => {
     fetch("/api/niches")
       .then((r) => r.json())
-      .then((j) => setNiches(j.data ?? []))
+      .then((j) => {
+        setNiches(j.data ?? []);
+        setLive(Boolean(j.live));
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -49,7 +54,13 @@ export default function NichesPage() {
         kicker="Research"
         title="Niche opportunity explorer"
         sub="Twelve product niches ranked by the gap between buyer demand and seller competition. Click any niche to research its keywords."
-        actions={<Badge tone="amber">Mock data</Badge>}
+        actions={
+          live ? (
+            <Badge tone="green">Live competition data</Badge>
+          ) : (
+            <Badge tone="amber">Mock data</Badge>
+          )
+        }
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -107,7 +118,10 @@ export default function NichesPage() {
 
                 <div className="mt-4 flex items-end justify-between gap-3">
                   <div>
-                    <p className="text-xs text-slate-400">Monthly volume</p>
+                    <p className="text-xs text-slate-400">
+                      Monthly volume
+                      {n.provenance?.volume === "estimated" && <EstMark />}
+                    </p>
                     <p className="text-lg font-extrabold tabular-nums text-slate-900">
                       {n.monthlyVolume.toLocaleString()}
                     </p>

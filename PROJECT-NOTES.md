@@ -1,6 +1,6 @@
 # Project Resume Notes — Etsy SEO Toolkit ("EtsyRank Lab")
 
-Saved: 2026-09-28. Updated: 2026-09-29 (Phase 2: rankkw-parity tools + UI upgrade). Pick up here after a break.
+Saved: 2026-09-28. Updated: 2026-09-29 (Phase 3: real Etsy Open API v3 wiring). Pick up here after a break.
 
 ## What this is
 An Etsy SEO toolkit with a similar feature set to rankkw.com, built with original branding (not a copy).
@@ -30,8 +30,39 @@ Stack: Next.js 14 (App Router) + TypeScript + Tailwind CSS. Location: `~/workspa
 
 ## What's mock vs real
 - Real: all UI, routing, search, charts, tag scoring, audit heuristics, fee math, API shapes
-- Mock: every number (from `lib/mock-data.ts`)
-- Not built: DB connection, auth, credit wiring, Stripe, Chrome extension, real Etsy API, real LLM
+- Mock: every number (from `lib/mock-data.ts`) — UNTIL env vars are set (see Phase 3 below)
+- Not built: DB connection, auth, credit wiring, Stripe, Chrome extension, real LLM
+
+## Phase 3 — real Etsy Open API v3 (done 2026-09-29, commit pending)
+`lib/etsy.ts` is the server-side client: `x-api-key: <keystring>:<shared_secret>`
+(colon-joined header is REQUIRED by Etsy since Feb 2026 — bare keystring gets
+403 "Shared secret is required in x-api-key header"). Base URL
+`https://openapi.etsy.com/v3/application`. In-memory 10-min TTL cache; every
+route falls back to mock data when env vars are missing or Etsy errors.
+
+**To go live:** set `ETSY_API_KEY` + `ETSY_SHARED_SECRET` in Vercel → Settings →
+Environment Variables (and redeploy). No code change needed.
+
+REAL from Etsy (when configured):
+- Competition counts: `GET /listings/active?keywords=` → `count` (keywords, niches)
+- Listing details: title, price {amount/divisor}, tags[], taxonomy_id, num_favorers, url, age from creation_tsi (competition, tags, audit)
+- Shop details: `GET /shops?shop_name=` → transaction_sold_count, review_count, review_average, listing_active_count, country, age (shop analyzer, competition)
+- Shop active listings: `GET /shops/{id}/listings/active` (shop analyzer)
+- Taxonomy names: `GET /seller/taxonomy/nodes/{id}` (process-lifetime cache)
+
+ESTIMATED (Etsy publishes no search-volume endpoint — labeled "est." in UI):
+- Search volume (deterministic per-keyword heuristic), keyword difficulty,
+  CTR, 12-month trend visuals, opportunity scores derived from the above.
+- Listing views/conversion: not exposed by Etsy — shown as "—" on live rows.
+- Audit section scores: heuristic scoring of real listing content.
+- `/api/ai-writer` still fully mock (no AI key); rank-tracker positions still mock.
+
+Upstream budget per user call: keywords 1, tags 1, shop 2, audit 2, niches 12,
+competition ≤14 (1 search + ≤8 shop lookups + ≤5 taxonomy lookups, cached).
+
+UI honesty: `EstMark` ("est.") superscript on estimated volume/difficulty in the
+keywords table, stat cards, and niche cards; Topbar shows "Live Etsy data" vs
+"Mock" badge from `GET /api/status`; dashboard footer is env-aware.
 
 ## API pricing (verified 2026-09-28)
 - Etsy Open API v3: $0 — free tier 10k req/day, ~5-10 req/sec. Needs app approval + OAuth.

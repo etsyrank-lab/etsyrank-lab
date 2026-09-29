@@ -123,7 +123,9 @@ export default function ShopPage() {
                       <tr key={l.listingId} className="hover:bg-slate-50/60">
                         <td className="max-w-md px-6 py-3.5 font-medium text-slate-800 line-clamp-2">{l.title}</td>
                         <td className="px-6 py-3.5 tabular-nums text-slate-600">${l.price.toFixed(2)}</td>
-                        <td className="px-6 py-3.5 tabular-nums text-slate-600">{l.views.toLocaleString()}</td>
+                        <td className="px-6 py-3.5 tabular-nums text-slate-600">
+                          {l.views != null ? l.views.toLocaleString() : "—"}
+                        </td>
                         <td className="px-6 py-3.5 tabular-nums font-semibold text-slate-900">{l.favorites.toLocaleString()}</td>
                       </tr>
                     ))}
