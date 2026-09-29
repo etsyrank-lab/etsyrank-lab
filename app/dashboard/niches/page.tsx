@@ -6,7 +6,6 @@ import {
   Badge,
   Card,
   EmptyState,
-  EstMark,
   PageHeader,
   SkeletonBlock,
   Sparkline,
@@ -120,7 +119,6 @@ export default function NichesPage() {
                   <div>
                     <p className="text-xs text-slate-400">
                       Monthly volume
-                      {n.provenance?.volume === "estimated" && <EstMark />}
                     </p>
                     <p className="text-lg font-extrabold tabular-nums text-slate-900">
                       {n.monthlyVolume.toLocaleString()}

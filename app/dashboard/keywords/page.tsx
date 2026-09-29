@@ -76,7 +76,6 @@ function KeywordsTool() {
               label="Search volume"
               value={detail.searchVolume.toLocaleString()}
               hint={live ? "per month" : "per month (mock)"}
-              est={live && detail.provenance?.volume === "estimated"}
             />
             <StatCard
               label="Competition"
@@ -87,15 +86,18 @@ function KeywordsTool() {
               label="Difficulty"
               value={`${detail.kd} / 100`}
               hint="higher = harder"
-              est={live && detail.provenance?.difficulty === "estimated"}
             />
             <StatCard
-              label="Est. CTR"
+              label="CTR"
               value={`${(detail.ctr * 100).toFixed(1)}%`}
               hint={live ? "click-through" : "click-through (mock)"}
-              est={live}
             />
           </div>
+          {live && (
+            <p className="text-xs text-slate-400">
+              Search volume, difficulty and CTR are modeled estimates; competition is measured live from Etsy.
+            </p>
+          )}
           <Card className="p-6">
             <h3 className="text-base font-bold text-slate-900">12-month demand trend</h3>
             <div className="mt-4">
