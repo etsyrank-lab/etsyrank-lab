@@ -1,4 +1,8 @@
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
+
+
 import { MOCK_COMPETITORS, MOCK_LISTINGS, MOCK_MARKET_INSIGHT } from "@/lib/mock-data";
 import {
   EtsyApiError,
