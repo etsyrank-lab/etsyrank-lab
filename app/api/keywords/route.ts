@@ -42,7 +42,9 @@ async function liveMetrics(keyword: string, country: string): Promise<KeywordMet
   if (shopLocation) params.shop_location = shopLocation;
   const data = await etsyFetch<EtsyPaged<unknown>>("/listings/active", params);
   const competition = data.count ?? 0;
-  const searchVolume = estimateVolume(keyword);
+  // Volume is modeled from the real competition count (see estimateVolume) —
+  // it must be computed after we know the count.
+  const searchVolume = estimateVolume(keyword, competition);
   const kd = kdFromCount(competition);
   const seed = keywordSeed(keyword);
 

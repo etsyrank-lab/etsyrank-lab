@@ -153,9 +153,27 @@ function hashStr(s: string): number {
  * Etsy publishes NO search-volume endpoint, so volume is always an estimate.
  * Deterministic per keyword so it is stable across requests.
  */
-export function estimateVolume(keyword: string): number {
+/**
+ * Estimated monthly searches. Etsy publishes no search-volume endpoint, so this
+ * is a heuristic — but an anchored one, not a random number:
+ *
+ *  - Power-law on the REAL competing-listing count: bigger markets genuinely
+ *    get more searches (calibrated so ~20k listings ≈ ~10k searches/mo and
+ *    ~1.4M listings ≈ ~150k searches/mo).
+ *  - Specificity discount: longer, more specific phrases take a fraction of
+ *    the head-term volume.
+ *  - Deterministic ±15% jitter (hash-seeded) so the figure is stable per
+ *    keyword but not a pure function of the listing count.
+ */
+export function estimateVolume(keyword: string, competition: number): number {
+  const words = keyword.toLowerCase().trim().split(/\s+/).filter(Boolean).length;
+  const base = 30 * Math.pow(Math.max(competition, 1), 0.62);
+  const specificity = Math.pow(Math.max(words, 1), -0.4);
   const h = hashStr(keyword.toLowerCase().trim());
-  return 800 + (h % 28000); // 800 – 28,800 / month
+  const jitter = 0.85 + ((h % 1000) / 1000) * 0.3;
+  const volume = base * specificity * jitter;
+  // Round to the nearest 10 — no false precision on a modeled number.
+  return Math.max(50, Math.round(volume / 10) * 10);
 }
 
 /** Heuristic difficulty 5–95 from the real competing-listing count. */
