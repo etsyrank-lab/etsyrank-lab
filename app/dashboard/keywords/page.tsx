@@ -6,34 +6,7 @@ import { Badge, Button, Card, Input } from "@/components/ui";
 import { KeywordTable } from "@/components/dashboard/Tables";
 import { StatCard, TrendsChart, competitionTone } from "@/components/dashboard/Widgets";
 import type { KeywordMetrics } from "@/types";
-
-/** Seller-country filter options (Etsy `shop_location`, ISO-3166 alpha-2). */
-const COUNTRIES = [
-  { code: "US", name: "United States" },
-  { code: "GB", name: "United Kingdom" },
-  { code: "CA", name: "Canada" },
-  { code: "AU", name: "Australia" },
-  { code: "DE", name: "Germany" },
-  { code: "FR", name: "France" },
-  { code: "IT", name: "Italy" },
-  { code: "ES", name: "Spain" },
-  { code: "NL", name: "Netherlands" },
-  { code: "IE", name: "Ireland" },
-  { code: "SE", name: "Sweden" },
-  { code: "NO", name: "Norway" },
-  { code: "DK", name: "Denmark" },
-  { code: "PL", name: "Poland" },
-  { code: "IN", name: "India" },
-  { code: "PK", name: "Pakistan" },
-  { code: "TR", name: "Türkiye" },
-  { code: "AE", name: "UAE" },
-  { code: "SA", name: "Saudi Arabia" },
-  { code: "JP", name: "Japan" },
-  { code: "BR", name: "Brazil" },
-  { code: "MX", name: "Mexico" },
-  { code: "NZ", name: "New Zealand" },
-  { code: "CN", name: "China" },
-];
+import { COUNTRIES } from "@/lib/countries";
 
 function KeywordsTool() {
   const searchParams = useSearchParams();
@@ -43,6 +16,7 @@ function KeywordsTool() {
   const [detail, setDetail] = useState<KeywordMetrics | null>(null);
   const [loading, setLoading] = useState(false);
   const [live, setLive] = useState(false);
+  const [volumeSource, setVolumeSource] = useState<"google" | "estimated">("estimated");
 
   async function runSearch(q: string, c: string = country) {
     setLoading(true);
@@ -51,6 +25,7 @@ function KeywordsTool() {
       const res = await fetch(url);
       const json = await res.json();
       setLive(Boolean(json.live));
+      setVolumeSource(json.volumeSource === "google" ? "google" : "estimated");
       if (json.data && !Array.isArray(json.data)) {
         setDetail(json.data as KeywordMetrics);
         setRows([]);
@@ -121,7 +96,7 @@ function KeywordsTool() {
             <StatCard
               label="Search volume"
               value={detail.searchVolume.toLocaleString()}
-              hint={live ? "per month" : "per month (mock)"}
+              hint={live ? (volumeSource === "google" ? "per month · Google Ads" : "per month · modeled") : "per month (mock)"}
             />
             <StatCard
               label="Competition"
@@ -169,7 +144,9 @@ function KeywordsTool() {
           </div>
           {live && (
             <p className="text-xs text-slate-400">
-              Search volume, difficulty, CTR and ad competition are modeled estimates; competition, favorites and prices are measured live from Etsy. Etsy does not expose listing views.
+              {volumeSource === "google"
+                ? "Search volume is measured by Google Keyword Planner; difficulty, CTR and ad competition are modeled estimates; competition, favorites and prices are measured live from Etsy. Etsy does not expose listing views."
+                : "Search volume, difficulty, CTR and ad competition are modeled estimates; competition, favorites and prices are measured live from Etsy. Etsy does not expose listing views."}
             </p>
           )}
           <Card className="p-6">

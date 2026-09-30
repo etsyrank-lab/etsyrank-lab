@@ -19,7 +19,11 @@ import {
   type EtsyListing,
   type EtsyPaged,
 } from "@/lib/etsy";
+import { getGoogleSearchVolume, isGoogleAdsConfigured } from "@/lib/google-ads";
 import type { CompetitionLevel, KeywordMetrics } from "@/types";
+
+/** Where the search-volume figure came from: Google's Keyword Planner, or our model. */
+export type VolumeSource = "google" | "estimated";
 
 /**
  * GET /api/keywords?q=<keyword>&country=<ISO-2>
@@ -28,13 +32,20 @@ import type { CompetitionLevel, KeywordMetrics } from "@/types";
  * comes from the real Etsy Open API v3 (`GET /listings/active` → `count`).
  * `country` filters competing listings by seller country via Etsy's
  * `shop_location` filter (full country name, e.g. "United States").
- * Search volume and difficulty are ALWAYS estimates — Etsy publishes no
- * search-volume endpoint — and are labeled as such in the UI.
+ *
+ * Search volume: when the Google Ads API is configured, it comes from the
+ * real Keyword Planner (`generateKeywordIdeas`, geo-targeted to `country`) —
+ * the same "Etsy + Google APIs" combination rankkw advertises. Otherwise it
+ * falls back to the competition-anchored estimate (see estimateVolume).
+ * Difficulty and CTR are always modeled — no API on earth exposes them.
  *
  * Without credentials (or on upstream failure) the route falls back to the
  * mock dataset so local dev and the deployed demo keep working.
  */
-async function liveMetrics(keyword: string, country: string): Promise<KeywordMetrics> {
+async function liveMetrics(
+  keyword: string,
+  country: string
+): Promise<{ metrics: KeywordMetrics; volumeSource: VolumeSource }> {
   // Etsy filters competing listings by *seller* country via shop_location,
   // which takes the full country name ("United States"), not the ISO code.
   const shopLocation = shopLocationName(country);
@@ -42,9 +53,24 @@ async function liveMetrics(keyword: string, country: string): Promise<KeywordMet
   if (shopLocation) params.shop_location = shopLocation;
   const data = await etsyFetch<EtsyPaged<unknown>>("/listings/active", params);
   const competition = data.count ?? 0;
-  // Volume is modeled from the real competition count (see estimateVolume) —
-  // it must be computed after we know the count.
-  const searchVolume = estimateVolume(keyword, competition);
+
+  // Real Google volume when configured; otherwise the modeled estimate,
+  // which is anchored to the real competition count (see estimateVolume).
+  let searchVolume = estimateVolume(keyword, competition);
+  let volumeSource: VolumeSource = "estimated";
+  if (isGoogleAdsConfigured()) {
+    try {
+      const googleVolume = await getGoogleSearchVolume(keyword, country || undefined);
+      if (googleVolume != null) {
+        searchVolume = googleVolume;
+        volumeSource = "google";
+      }
+    } catch (e) {
+      // Never break keyword research because Google hiccuped — log and
+      // keep the modeled estimate.
+      console.error("Google Ads volume lookup failed, using estimate:", e);
+    }
+  }
   const kd = kdFromCount(competition);
   const seed = keywordSeed(keyword);
 
@@ -83,20 +109,27 @@ async function liveMetrics(keyword: string, country: string): Promise<KeywordMet
 
   const level: CompetitionLevel = competitionLevel(competition);
   return {
-    keyword,
-    searchVolume,
-    competition,
-    competitionLevel: level,
-    kd,
-    trend: trend(seed, Math.max(60, Math.round(searchVolume / 45)), Math.round(searchVolume / 130)),
-    ctr: 0.03 + ((seed % 25) / 1000),
-    opportunity: opportunityFromKd(kd),
-    adCompetition: estimateAdCompetition(keyword, kd),
-    avgPrice,
-    avgFavorites,
-    avgViews: null, // Etsy does not expose listing views
-    favsPerView: null, // impossible without view data
-    provenance: { volume: "estimated", competition: "live", difficulty: "estimated" },
+    metrics: {
+      keyword,
+      searchVolume,
+      competition,
+      competitionLevel: level,
+      kd,
+      trend: trend(seed, Math.max(60, Math.round(searchVolume / 45)), Math.round(searchVolume / 130)),
+      ctr: 0.03 + ((seed % 25) / 1000),
+      opportunity: opportunityFromKd(kd),
+      adCompetition: estimateAdCompetition(keyword, kd),
+      avgPrice,
+      avgFavorites,
+      avgViews: null, // Etsy does not expose listing views
+      favsPerView: null, // impossible without view data
+      provenance: {
+        volume: volumeSource === "google" ? "live" : "estimated",
+        competition: "live",
+        difficulty: "estimated",
+      },
+    },
+    volumeSource,
   };
 }
 
@@ -120,8 +153,8 @@ export async function GET(req: NextRequest) {
 
   if (q && isEtsyConfigured()) {
     try {
-      const data = await liveMetrics(q, country);
-      return NextResponse.json({ data, mock: false, live: true });
+      const { metrics, volumeSource } = await liveMetrics(q, country);
+      return NextResponse.json({ data: metrics, mock: false, live: true, volumeSource });
     } catch (e) {
       // Fall through to mock data — never break the UI on an API hiccup.
       console.error(
