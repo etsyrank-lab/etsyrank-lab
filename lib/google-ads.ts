@@ -8,9 +8,15 @@
  * "Etsy + Google APIs" combination rankkw.com advertises.
  *
  * Cost: $0. The API is free and unmetered per call; access is granted via the
- * Google Cloud project's access level (Test → Explorer → Basic). No ad spend
- * is required — though note Google returns *bucketed* volumes (e.g. 1K–10K
- * bands) for accounts with no spend history. Still real measured data.
+ * Google Cloud project's access level. IMPORTANT: the Keyword Planner
+ * services (GenerateKeywordIdeas) are explicitly BLOCKED at Explorer level —
+ * Basic access is required. Explorer (2,880 ops/day) is a stepping stone;
+ * Basic (15,000 ops/day) unlocks planning. In the post-Sept-2026 system,
+ * Basic is approved automatically within minutes once brand verification is
+ * complete (OAuth consent screen: External, published "In production",
+ * branding filled). No ad spend is required — though note Google returns
+ * *bucketed* volumes (e.g. 1K–10K bands) for accounts with no spend history.
+ * Still real measured data.
  *
  * Auth model (post Sept-2026): access levels are tied to the Google Cloud
  * project, and developer tokens were sunset — so the token header is only
