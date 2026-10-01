@@ -155,18 +155,6 @@ export default function AiWriterPage() {
               {draft.description}
             </p>
           </Card>
-
-          <Card className="border-dashed p-5">
-            <div className="flex gap-3 text-sm text-slate-600">
-              <span className="text-lg">⚙</span>
-              <p>
-                <span className="font-bold text-slate-900">Phase 2 wiring:</span> this mock template
-                output will be replaced by a GPT-5 mini call inside{" "}
-                <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">app/api/ai-writer/route.ts</code>{" "}
-                — grounded on your niche's real top tags, validated to Etsy's 140/20-character limits, and billed at ~$0.00026 per listing.
-              </p>
-            </div>
-          </Card>
         </div>
       )}
     </div>

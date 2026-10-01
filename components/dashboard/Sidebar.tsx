@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const ICONS: Record<string, JSX.Element> = {
   grid: (
@@ -107,6 +108,13 @@ export const FLAT_NAV = GROUPS.flatMap((g) => g.items);
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [live, setLive] = useState<boolean | null>(null);
+  useEffect(() => {
+    fetch("/api/status")
+      .then((r) => r.json())
+      .then((j) => setLive(Boolean(j.etsy)))
+      .catch(() => setLive(false));
+  }, []);
   return (
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-slate-200/80 bg-white lg:flex">
       <Link href="/" className="flex h-16 items-center gap-2.5 border-b border-slate-100 px-5">
@@ -149,18 +157,34 @@ export function Sidebar() {
 
       <div className="border-t border-slate-100 p-4">
         <div className="rounded-2xl bg-gradient-to-br from-accent-50 to-brand-50 p-4 ring-1 ring-brand-100">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-extrabold text-slate-900">Mock credits</p>
-            <span className="rounded-full bg-white px-2 py-0.5 text-xs font-extrabold tabular-nums text-brand-700 shadow-sm">
-              25
-            </span>
-          </div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white">
-            <div className="h-full w-1/4 rounded-full bg-gradient-to-r from-brand-500 to-accent-500" />
-          </div>
-          <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
-            Demo mode — every number on this site is fictional.
-          </p>
+          {live ? (
+            <>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-extrabold text-slate-900">Etsy API</p>
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-extrabold text-emerald-700">
+                  Live
+                </span>
+              </div>
+              <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+                Competition counts are live from the Etsy Open API; search volumes are estimates.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-extrabold text-slate-900">Mock credits</p>
+                <span className="rounded-full bg-white px-2 py-0.5 text-xs font-extrabold tabular-nums text-brand-700 shadow-sm">
+                  25
+                </span>
+              </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white">
+                <div className="h-full w-1/4 rounded-full bg-gradient-to-r from-brand-500 to-accent-500" />
+              </div>
+              <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
+                Demo mode — every number on this site is fictional.
+              </p>
+            </>
+          )}
         </div>
       </div>
     </aside>
