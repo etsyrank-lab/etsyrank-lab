@@ -77,8 +77,16 @@ export default function AuditPage() {
           imageCount,
         }),
       });
-      const json = await res.json();
-      setReport(json.data);
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setAuditError(json.error ?? "Could not run the audit. Please try again.");
+        setReport(null);
+      } else {
+        setReport(json.data);
+      }
+    } catch {
+      setAuditError("Could not reach the server. Check your connection and try again.");
+      setReport(null);
     } finally {
       setLoading(false);
     }
@@ -95,13 +103,16 @@ export default function AuditPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ listing_id: id }),
       });
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         setAuditError(json.error ?? "Could not fetch that listing.");
         setReport(null);
       } else {
         setReport(json.data);
       }
+    } catch {
+      setAuditError("Could not reach the server. Check your connection and try again.");
+      setReport(null);
     } finally {
       setLoading(false);
     }
@@ -244,6 +255,9 @@ export default function AuditPage() {
           <Button onClick={runAudit} disabled={loading} className="w-full md:w-auto">
             {loading ? "Grading…" : "Run audit"}
           </Button>
+          {auditError && !live && (
+            <p className="text-xs font-semibold text-rose-600">{auditError}</p>
+          )}
         </div>
       </Card>
 
