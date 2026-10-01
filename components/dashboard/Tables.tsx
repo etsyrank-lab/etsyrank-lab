@@ -14,12 +14,13 @@ const COMP_TEXT: Record<string, string> = {
 export function KeywordTable({ rows }: { rows: KeywordMetrics[] }) {
   return (
     <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-      <table className="w-full min-w-[720px] text-left text-sm">
+      <table className="w-full min-w-[800px] text-left text-sm">
         <thead>
           <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <th className="px-5 py-3 font-semibold">Keyword</th>
             <th className="px-5 py-3 font-semibold">Volume</th>
             <th className="px-5 py-3 font-semibold">Competition</th>
+            <th className="px-5 py-3 font-semibold">Total sales</th>
             <th className="px-5 py-3 font-semibold">KD</th>
             <th className="px-5 py-3 font-semibold">CTR</th>
             <th className="px-5 py-3 font-semibold">Opportunity</th>
@@ -40,6 +41,9 @@ export function KeywordTable({ rows }: { rows: KeywordMetrics[] }) {
                 {k.searchVolume.toLocaleString()}
               </td>
               <td className={`px-5 py-3 font-semibold tabular-nums ${COMP_TEXT[competitionTone(k.competitionLevel) ?? ""] ?? ""}`}>{k.competition.toLocaleString()}</td>
+              <td className="px-5 py-3 tabular-nums" title="Lifetime sales of the top competing shops (Etsy exposes sales per shop, not per keyword)">
+                {k.totalSales != null ? k.totalSales.toLocaleString() : "—"}
+              </td>
               <td className="px-5 py-3 tabular-nums">
                 {k.kd}
               </td>

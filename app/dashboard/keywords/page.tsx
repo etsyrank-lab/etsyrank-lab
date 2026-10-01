@@ -115,7 +115,12 @@ function KeywordsTool() {
               hint={live ? "click-through" : "click-through (mock)"}
             />
           </div>
-          <div className="grid gap-4 md:grid-cols-5">
+          <div className="grid gap-4 md:grid-cols-6">
+            <StatCard
+              label="Total sales"
+              value={detail.totalSales != null ? detail.totalSales.toLocaleString() : "—"}
+              hint={live ? "top competing shops, lifetime" : "competing shops (mock)"}
+            />
             <StatCard
               label="Ad competition"
               value={detail.adCompetition != null ? `${detail.adCompetition} / 100` : "—"}
@@ -145,8 +150,8 @@ function KeywordsTool() {
           {live && (
             <p className="text-xs text-slate-400">
               {volumeSource === "google"
-                ? "Search volume is measured by Google Keyword Planner; difficulty, CTR and ad competition are modeled estimates; competition, favorites and prices are measured live from Etsy. Etsy does not expose listing views."
-                : "Search volume, difficulty, CTR and ad competition are modeled estimates; competition, favorites and prices are measured live from Etsy. Etsy does not expose listing views."}
+                ? "Search volume is measured by Google Keyword Planner; difficulty, CTR and ad competition are modeled estimates; competition, favorites, prices and total sales are measured live from Etsy. Etsy does not expose listing views or per-keyword sales — total sales sums the lifetime sales of the top 10 competing shops."
+                : "Search volume, difficulty, CTR and ad competition are modeled estimates; competition, favorites, prices and total sales are measured live from Etsy. Etsy does not expose listing views or per-keyword sales — total sales sums the lifetime sales of the top 10 competing shops."}
             </p>
           )}
           <Card className="p-6">

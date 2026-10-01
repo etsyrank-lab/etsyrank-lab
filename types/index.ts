@@ -44,6 +44,13 @@ export interface KeywordMetrics {
   avgViews?: number | null;
   /** favorites ÷ views — impossible without view data; absent (UI shows "—"). */
   favsPerView?: number | null;
+  /**
+   * Sum of lifetime sales (transaction_sold_count) across the top competing
+   * shops for this keyword. Live from Etsy. Note: Etsy exposes sales per
+   * *shop*, not per keyword — this is the shops' lifetime total, a demand
+   * proxy, not sales of the keyword itself.
+   */
+  totalSales?: number;
   /** Which fields are live vs estimated. Absent = legacy mock row. */
   provenance?: FieldProvenance;
 }

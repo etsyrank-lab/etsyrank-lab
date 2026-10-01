@@ -18,6 +18,7 @@ import {
   shopLocationName,
   type EtsyListing,
   type EtsyPaged,
+  type EtsyShop,
 } from "@/lib/etsy";
 import { getGoogleSearchVolume, isGoogleAdsConfigured } from "@/lib/google-ads";
 import type { CompetitionLevel, KeywordMetrics } from "@/types";
@@ -38,6 +39,9 @@ export type VolumeSource = "google" | "estimated";
  * the same "Etsy + Google APIs" combination rankkw advertises. Otherwise it
  * falls back to the competition-anchored estimate (see estimateVolume).
  * Difficulty and CTR are always modeled — no API on earth exposes them.
+ * Total sales is the sum of lifetime sales across the top 10 competing
+ * shops (Etsy exposes sales per shop, not per keyword) — a demand proxy,
+ * labeled as such in the UI.
  *
  * Without credentials (or on upstream failure) the route falls back to the
  * mock dataset so local dev and the deployed demo keep working.
@@ -75,8 +79,12 @@ async function liveMetrics(
   const seed = keywordSeed(keyword);
 
   // One extra request: top listings for real avg price + avg favorites.
+  // Then capped shop lookups for total sales (sum of the top competing
+  // shops' lifetime transaction counts — Etsy exposes sales per shop,
+  // not per keyword, so this is a demand proxy, labeled as such in the UI).
   let avgPrice: number | undefined;
   let avgFavorites: number | undefined;
+  let totalSales: number | undefined;
   try {
     const topParams: Record<string, string | number> = {
       keywords: keyword,
@@ -102,9 +110,27 @@ async function liveMetrics(
           : (xs[xs.length / 2 - 1] + xs[xs.length / 2]) / 2;
       if (prices.length > 0) avgPrice = Math.round(median(prices) * 100) / 100;
       avgFavorites = Math.round(median(favs));
+
+      const shopIds = Array.from(
+        new Set(listings.map((l) => l.shop_id).filter(Boolean))
+      ).slice(0, 10);
+      let sales = 0;
+      let resolved = 0;
+      await Promise.all(
+        shopIds.map(async (id) => {
+          try {
+            const shop = await etsyFetch<EtsyShop>(`/shops/${id}`);
+            sales += shop.transaction_sold_count ?? 0;
+            resolved += 1;
+          } catch {
+            /* skip shops that fail to resolve */
+          }
+        })
+      );
+      if (resolved > 0) totalSales = sales;
     }
   } catch {
-    /* avg price/favorites stay undefined — core metrics still render */
+    /* avg price/favorites/sales stay undefined — core metrics still render */
   }
 
   const level: CompetitionLevel = competitionLevel(competition);
@@ -123,6 +149,7 @@ async function liveMetrics(
       avgFavorites,
       avgViews: null, // Etsy does not expose listing views
       favsPerView: null, // impossible without view data
+      totalSales, // sum of top competing shops' lifetime sales (live)
       provenance: {
         volume: volumeSource === "google" ? "live" : "estimated",
         competition: "live",
@@ -142,6 +169,7 @@ function enrichMock(m: KeywordMetrics): KeywordMetrics {
     adCompetition: m.adCompetition ?? estimateAdCompetition(m.keyword, m.kd),
     avgPrice: m.avgPrice ?? Math.round((18 + (seed % 4200) / 100) * 100) / 100,
     avgFavorites: m.avgFavorites ?? 20 + (seed % 900),
+    totalSales: m.totalSales ?? 500 + (seed % 95000),
     avgViews: null,
     favsPerView: null,
   };
