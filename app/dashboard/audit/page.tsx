@@ -166,7 +166,7 @@ export default function AuditPage() {
                 onClick={() => loadMock(l.listingId)}
                 className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-brand-100 hover:text-brand-800"
               >
-                Load mock: {l.shopName}
+                Load sample: {l.shopName}
               </button>
             ))}
           </div>

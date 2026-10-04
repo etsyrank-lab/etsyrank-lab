@@ -17,6 +17,14 @@ export default function CompetitionPage() {
   const [query, setQuery] = useState("personalized gold name necklace");
   const [data, setData] = useState<CompetitionData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [live, setLive] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/status")
+      .then((r) => r.json())
+      .then((j) => setLive(j.live === true))
+      .catch(() => {});
+  }, []);
 
   async function run(q: string) {
     setLoading(true);
@@ -38,7 +46,11 @@ export default function CompetitionPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Competition analysis</h1>
-        <p className="mt-1 text-sm text-slate-500">Who's winning your niche — mock shop and listing data.</p>
+        <p className="mt-1 text-sm text-slate-500">
+          {live
+            ? "Who's winning your niche — live shop and listing data from the Etsy API."
+            : "Who's winning your niche — shop and listing data."}
+        </p>
       </div>
 
       <Card className="flex gap-3 p-4">

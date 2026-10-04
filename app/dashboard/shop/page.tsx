@@ -3,49 +3,90 @@
 import { useEffect, useState } from "react";
 import {
   Badge,
+  Button,
   Card,
+  Input,
   PageHeader,
   ScoreRing,
-  Select,
   SkeletonBlock,
   Stat,
 } from "@/components/ui";
 import type { ShopAnalysis } from "@/types";
-import { MOCK_COMPETITORS } from "@/lib/mock-data";
 
 export default function ShopPage() {
-  const [shopName, setShopName] = useState(MOCK_COMPETITORS[0].shopName);
+  const [shopName, setShopName] = useState("");
+  const [query, setQuery] = useState("");
   const [analysis, setAnalysis] = useState<ShopAnalysis | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [live, setLive] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    fetch(`/api/shop?shop=${encodeURIComponent(shopName)}`)
+    fetch("/api/status")
       .then((r) => r.json())
-      .then((j) => setAnalysis(j.data))
-      .finally(() => setLoading(false));
-  }, [shopName]);
+      .then((j) => setLive(j.live === true))
+      .catch(() => {});
+  }, []);
+
+  async function analyze(name: string) {
+    const shop = name.trim();
+    if (!shop) return;
+    setLoading(true);
+    setError(null);
+    setAnalysis(null);
+    try {
+      const r = await fetch(`/api/shop?shop=${encodeURIComponent(shop)}`);
+      const j = await r.json();
+      if (!r.ok || !j.data) {
+        throw new Error(j.error ?? "Shop not found.");
+      }
+      setAnalysis(j.data as ShopAnalysis);
+      setQuery(shop);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Shop lookup failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="space-y-8">
       <PageHeader
         kicker="Research"
         title="Shop analyzer"
-        sub="Pick a shop to see its health score, what's working, and the exact gaps you can exploit when you compete against it."
-        actions={<Badge tone="amber">Mock data</Badge>}
+        sub="Enter any Etsy shop name to see its health score, what's working, and the exact gaps you can exploit when you compete against it."
+        actions={
+          live ? (
+            <Badge tone="green">Live shop data</Badge>
+          ) : (
+            <Badge tone="amber">Mock data</Badge>
+          )
+        }
       />
 
       <Card className="p-5">
         <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">
           Shop to analyze
         </label>
-        <Select value={shopName} onChange={(e) => setShopName(e.target.value)} className="max-w-md">
-          {MOCK_COMPETITORS.map((s) => (
-            <option key={s.shopId} value={s.shopName}>
-              {s.shopName} — {s.totalSales.toLocaleString()} sales
-            </option>
-          ))}
-        </Select>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Input
+            value={shopName}
+            onChange={(e) => setShopName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && analyze(shopName)}
+            placeholder="e.g. LUVIDA"
+            className="max-w-md"
+          />
+          <Button
+            onClick={() => analyze(shopName)}
+            disabled={loading || !shopName.trim()}
+            className="shrink-0"
+          >
+            {loading ? "Analyzing…" : "Analyze shop"}
+          </Button>
+        </div>
+        {error && (
+          <p className="mt-2 text-sm font-semibold text-rose-600">{error}</p>
+        )}
       </Card>
 
       {loading ? (
@@ -53,7 +94,11 @@ export default function ShopPage() {
           {[1, 2, 3].map((i) => <SkeletonBlock key={i} className="h-44" />)}
         </div>
       ) : !analysis ? (
-        <Card className="p-8 text-center text-sm text-slate-500">Shop not found in mock data.</Card>
+        <Card className="p-8 text-center text-sm text-slate-500">
+          {query
+            ? `No analysis for “${query}”.`
+            : "Enter a shop name above to run a live analysis."}
+        </Card>
       ) : (
         <div className="fade-up space-y-6">
           <div className="grid gap-4 lg:grid-cols-3">
@@ -105,7 +150,7 @@ export default function ShopPage() {
             </h3>
             {analysis.topListings.length === 0 ? (
               <p className="px-6 py-8 text-center text-sm text-slate-400">
-                No mock listings recorded for this shop yet.
+                No listings recorded for this shop yet.
               </p>
             ) : (
               <div className="overflow-x-auto">
