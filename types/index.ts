@@ -194,3 +194,21 @@ export interface GeneratedListing {
   /** always true in the MVP — flags mock output in the UI */
   mock: true;
 }
+
+/** Where a keyword idea came from — shown in the UI so sellers can judge it. */
+export type IdeaSource = "top-listings" | "tags" | "related";
+
+/**
+ * One keyword idea from /api/expand: lightweight metrics only (competition
+ * count + modeled volume + KD). Full detail (price, favorites, total sales)
+ * comes from /api/keywords when the seller clicks through to measure it.
+ */
+export interface KeywordIdea {
+  keyword: string;
+  searchVolume: number;
+  competition: number;
+  competitionLevel?: CompetitionLevel;
+  kd: number;
+  opportunity: "high" | "medium" | "low";
+  source: IdeaSource;
+}

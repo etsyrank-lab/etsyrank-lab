@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Badge, Button, Card, Input } from "@/components/ui";
 import { KeywordTable } from "@/components/dashboard/Tables";
 import { StatCard, TrendsChart, competitionTone } from "@/components/dashboard/Widgets";
-import type { KeywordMetrics } from "@/types";
+import type { KeywordIdea, KeywordMetrics } from "@/types";
 import { COUNTRIES } from "@/lib/countries";
 
 function KeywordsTool() {
@@ -17,8 +17,24 @@ function KeywordsTool() {
   const [loading, setLoading] = useState(false);
   const [live, setLive] = useState(false);
   const [volumeSource, setVolumeSource] = useState<"google" | "estimated">("estimated");
+  const [ideas, setIdeas] = useState<KeywordIdea[]>([]);
+  const [ideasLoading, setIdeasLoading] = useState(false);
+
+  async function runExpand(q: string, c: string = country) {
+    if (!q.trim()) return;
+    setIdeasLoading(true);
+    try {
+      const url = `/api/expand?q=${encodeURIComponent(q)}${c ? `&country=${c}` : ""}&limit=15`;
+      const res = await fetch(url);
+      const json = await res.json();
+      setIdeas((json.data as KeywordIdea[]) ?? []);
+    } finally {
+      setIdeasLoading(false);
+    }
+  }
 
   async function runSearch(q: string, c: string = country) {
+    setIdeas([]);
     setLoading(true);
     try {
       const url = `/api/keywords?q=${encodeURIComponent(q)}${c ? `&country=${c}` : ""}`;
@@ -77,7 +93,57 @@ function KeywordsTool() {
         <Button onClick={() => runSearch(query)} disabled={loading}>
           {loading ? "…" : "Search"}
         </Button>
+        <Button variant="outline" onClick={() => runExpand(query)} disabled={ideasLoading || !query.trim()}>
+          {ideasLoading ? "…" : "💡 Get ideas"}
+        </Button>
       </Card>
+
+      {ideas.length > 0 && (
+        <Card className="p-4">
+          <h3 className="text-base font-bold text-slate-900">Keyword ideas for “{query}”</h3>
+          <p className="mt-1 text-xs text-slate-500">
+            From top competing listings + related patterns. Volume is modeled; click Measure for full detail.
+          </p>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
+                  <th className="py-2 pr-3 font-semibold">Keyword</th>
+                  <th className="py-2 pr-3 font-semibold">Source</th>
+                  <th className="py-2 pr-3 font-semibold">Volume</th>
+                  <th className="py-2 pr-3 font-semibold">Competition</th>
+                  <th className="py-2 pr-3 font-semibold">KD</th>
+                  <th className="py-2 pr-3 font-semibold">Opportunity</th>
+                  <th className="py-2 font-semibold" />
+                </tr>
+              </thead>
+              <tbody>
+                {ideas.map((idea) => (
+                  <tr key={idea.keyword} className="border-b border-slate-50 last:border-0">
+                    <td className="py-2 pr-3 font-medium text-slate-900">{idea.keyword}</td>
+                    <td className="py-2 pr-3 text-slate-500">
+                      {idea.source === "top-listings" ? "Top listings" : idea.source === "tags" ? "Tags" : "Related"}
+                    </td>
+                    <td className="py-2 pr-3 text-slate-700">{idea.searchVolume.toLocaleString()}</td>
+                    <td className="py-2 pr-3 text-slate-700">{idea.competition.toLocaleString()}</td>
+                    <td className="py-2 pr-3 text-slate-700">{idea.kd}</td>
+                    <td className="py-2 pr-3">
+                      <Badge tone={idea.opportunity === "high" ? "green" : idea.opportunity === "medium" ? "amber" : "red"}>
+                        {idea.opportunity}
+                      </Badge>
+                    </td>
+                    <td className="py-2 text-right">
+                      <Button variant="outline" onClick={() => runSearch(idea.keyword)}>
+                        Measure →
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {detail ? (
         <div className="space-y-6">
